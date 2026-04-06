@@ -89,131 +89,140 @@ export const printLedger = (
   });
 
   const htmlContent = `
-    <div style="width: 210mm; height: 297mm; margin: 0 auto; padding: 10mm; box-sizing: border-box; font-family: Arial, sans-serif; font-size: 11px; line-height: 1.4;">
-      <!-- Header -->
-      <div style="text-align: center; margin-bottom: 8mm; border-bottom: 2px solid #333; padding-bottom: 5mm;">
-        <h1 style="margin: 0; color: #2c3e50; font-size: 16px;">${storageName}</h1>
-        <p style="margin: 2px 0; color: #666; font-size: 11px;">Farmer Ledger Report</p>
-      </div>
+    <html>
+    <head>
+      <style>
+        * { margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; color: #333; }
+        .container { max-width: 100%; padding: 6px; }
+        .header { text-align: center; margin-bottom: 6px; border-bottom: 2px solid #333; padding-bottom: 4px; }
+        .header h1 { font-size: 18px; font-weight: bold; color: #2c3e50; margin-bottom: 2px; }
+        .header p { font-size: 12px; color: #666; }
+        .section { margin-bottom: 6px; }
+        .section-title { font-size: 11px; font-weight: bold; color: #2c3e50; margin-bottom: 3px; border-bottom: 1px solid #3498db; padding-bottom: 2px; }
+        .details-box { background-color: #f5f5f5; border-left: 2px solid #3498db; padding: 5px; font-size: 10px; line-height: 1.5; }
+        table { width: 100%; border-collapse: collapse; font-size: 10px; }
+        th { background-color: #3498db; color: white; padding: 4px; text-align: left; border: 1px solid #999; font-weight: bold; }
+        td { padding: 3px; border: 1px solid #ddd; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .summary-table { font-size: 10px; width: 100%; }
+        .summary-table tr { display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 4px; }
+        .summary-table td { padding: 4px 3px; border: none; }
+        .summary-label { font-weight: bold; text-align: left; white-space: nowrap; }
+        .summary-value { text-align: right; background-color: #f0f8ff; padding: 4px; font-weight: bold; white-space: nowrap; }
+        .signature-section { margin-top: 8px; border-top: 1px solid #999; padding-top: 5px; display: flex; justify-content: space-between; font-size: 9px; }
+        .sig-box { flex: 1; text-align: center; }
+        .stamp-area { height: 18px; border: 1px dashed #999; display: flex; align-items: center; justify-content: center; color: #999; font-weight: bold; margin-bottom: 2px; font-size: 8px; }
+        .sig-line { border-top: 1px solid #333; margin-top: 2px; padding-top: 3px; font-weight: bold; }
+        .footer { text-align: center; font-size: 8px; color: #666; margin-top: 6px; border-top: 1px solid #ddd; padding-top: 3px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>${storageName}</h1>
+          <p>Farmer Ledger Report</p>
+        </div>
 
-      <!-- Farmer Details Section -->
-      <div style="margin-bottom: 8mm; background-color: #f5f5f5; border-left: 3px solid #3498db; padding: 8mm;">
-        <p style="margin: 0 0 4mm 0; color: #2c3e50; font-weight: bold; font-size: 10px;">Farmer Details</p>
-        <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
-          <tr>
-            <td style="padding: 3mm; width: 50%;"><strong>Name:</strong> ${farmerName}</td>
-            <td style="padding: 3mm; width: 50%;"><strong>Season:</strong> ${seasonName}</td>
-          </tr>
-          <tr>
-            <td style="padding: 3mm;"><strong>Date:</strong> ${new Date().toLocaleDateString('en-IN')}</td>
-            <td style="padding: 3mm;"><strong>Time:</strong> ${printTime}</td>
-          </tr>
-        </table>
-      </div>
-
-      <!-- Transactions Section -->
-      <div style="margin-bottom: 8mm;">
-        <p style="margin: 0 0 4mm 0; color: #2c3e50; font-weight: bold; font-size: 10px; border-bottom: 1px solid #3498db; padding-bottom: 2mm;">Transaction Details</p>
-        <table style="width: 100%; border-collapse: collapse; font-size: 8px;">
-          <thead>
-            <tr style="background-color: #3498db; color: white;">
-              <th style="padding: 3mm; text-align: left; border: 1px solid #999; width: 15%;">Date</th>
-              <th style="padding: 3mm; text-align: left; border: 1px solid #999; width: 18%;">Type</th>
-              <th style="padding: 3mm; text-align: center; border: 1px solid #999; width: 12%;">Bags</th>
-              <th style="padding: 3mm; text-align: right; border: 1px solid #999; width: 25%;">Amount</th>
-              <th style="padding: 3mm; text-align: left; border: 1px solid #999; width: 30%;">Notes</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${transactions.map((tx, index) => `
-              <tr style="background-color: ${index % 2 === 0 ? '#fff' : '#f9f9f9'};">
-                <td style="padding: 2mm; border: 1px solid #ddd;">${formatDate(tx.date)}</td>
-                <td style="padding: 2mm; border: 1px solid #ddd; font-weight: 500;">
-                  ${tx.type === 'deposit' ? 'Deposit' : tx.type === 'withdrawal' ? 'Withdrawal' : 'Payment'}
-                </td>
-                <td style="padding: 2mm; border: 1px solid #ddd; text-align: center;">${tx.bags || '-'}</td>
-                <td style="padding: 2mm; border: 1px solid #ddd; text-align: right;">${formatCurrency(tx.amount || tx.payment || 0)}</td>
-                <td style="padding: 2mm; border: 1px solid #ddd; font-size: 7px;">${(tx.note || '-').substring(0, 20)}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Payment Summary Section -->
-      <div style="margin-top: 8mm; padding: 10mm; background: #f0f8ff; border: 1px solid #3498db; border-radius: 3px;">
-        <p style="margin: 0 0 4mm 0; color: #2c3e50; font-weight: bold; font-size: 10px; text-align: center;">Payment Summary</p>
-        <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
-          <tr>
-            <td style="padding: 2mm 5mm;"><strong>Total Deposited:</strong></td>
-            <td style="padding: 2mm 5mm; text-align: right; background-color: #e8f5e9;"><strong>${totalDeposited} bags</strong></td>
-          </tr>
-          <tr>
-            <td style="padding: 2mm 5mm;"><strong>Total Withdrawn:</strong></td>
-            <td style="padding: 2mm 5mm; text-align: right; background-color: #fff3e0;"><strong>${totalWithdrawn} bags</strong></td>
-          </tr>
-          <tr>
-            <td style="padding: 2mm 5mm;"><strong>Remaining:</strong></td>
-            <td style="padding: 2mm 5mm; text-align: right; background-color: #e1f5fe;"><strong>${remainingBags} bags</strong></td>
-          </tr>
-          <tr style="border-top: 1px solid #999;">
-            <td style="padding: 2mm 5mm;"><strong>Total Rent (@ ₹${rentPerBag}/bag):</strong></td>
-            <td style="padding: 2mm 5mm; text-align: right; background-color: #f3e5f5;"><strong>${formatCurrency(totalRent)}</strong></td>
-          </tr>
-          <tr>
-            <td style="padding: 2mm 5mm;"><strong>Total Paid:</strong></td>
-            <td style="padding: 2mm 5mm; text-align: right; background-color: #e8f5e9;"><strong>${formatCurrency(totalPaid)}</strong></td>
-          </tr>
-          <tr style="border-top: 2px solid #ff9800;">
-            <td style="padding: 3mm 5mm;"><strong>Pending:</strong></td>
-            <td style="padding: 3mm 5mm; text-align: right; background-color: ${pendingAmount > 0 ? '#ffcdd2' : '#c8e6c9'}; font-weight: bold; color: ${pendingAmount > 0 ? '#c62828' : '#2e7d32'};"><strong>${formatCurrency(pendingAmount)}</strong></td>
-          </tr>
-        </table>
-      </div>
-
-      <!-- Stamp/Signature Section -->
-      <div style="margin-top: 8mm; padding-top: 5mm; border-top: 1px solid #999; display: table; width: 100%;">
-        <div style="display: table-cell; width: 30%; text-align: center; padding-right: 5mm;">
-          <div style="height: 20mm; border: 1px dashed #999; display: flex; align-items: center; justify-content: center; color: #999; font-weight: bold; font-size: 9px;">
-            STAMP
+        <div class="section">
+          <div class="section-title">Farmer Details</div>
+          <div class="details-box">
+            <div><strong>Name:</strong> ${farmerName} | <strong>Season:</strong> ${seasonName}</div>
+            <div><strong>Date:</strong> ${new Date().toLocaleDateString('en-IN')} | <strong>Time:</strong> ${printTime}</div>
           </div>
         </div>
-        <div style="display: table-cell; width: 35%; text-align: center; padding: 0 5mm; border-top: 1px solid #333; padding-top: 3mm; font-size: 8px;">
-          <strong>Farmer Signature</strong>
-        </div>
-        <div style="display: table-cell; width: 35%; text-align: center; padding-left: 5mm; border-top: 1px solid #333; padding-top: 3mm; font-size: 8px;">
-          <strong>Officer Signature</strong>
-        </div>
-      </div>
 
-      <!-- Footer -->
-      <div style="margin-top: 8mm; text-align: center; font-size: 8px; color: #666; border-top: 1px solid #ddd; padding-top: 3mm;">
-        <p style="margin: 0;">Computer-generated document. Generated: ${printTime}</p>
+        <div class="section">
+          <div class="section-title">Transaction Details</div>
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Bags</th>
+                <th>Amount</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${transactions.map((tx) => `
+                <tr>
+                  <td>${formatDate(tx.date)}</td>
+                  <td>${tx.type === 'deposit' ? 'Deposit' : tx.type === 'withdrawal' ? 'Withdrawal' : 'Payment'}</td>
+                  <td>${tx.bags || '-'}</td>
+                  <td>${formatCurrency(tx.amount || tx.payment || 0)}</td>
+                  <td>${(tx.note || '-').substring(0, 15)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Payment Summary</div>
+          <table class="summary-table">
+            <tr>
+              <td class="summary-label">Total Deposited:</td>
+              <td class="summary-value">${totalDeposited} bags</td>
+              <td class="summary-label">Remaining:</td>
+              <td class="summary-value">${remainingBags} bags</td>
+            </tr>
+            <tr>
+              <td class="summary-label">Total Withdrawn:</td>
+              <td class="summary-value">${totalWithdrawn} bags</td>
+              <td class="summary-label">Rent (₹${rentPerBag}/bag):</td>
+              <td class="summary-value">${formatCurrency(totalRent)}</td>
+            </tr>
+            <tr style="border-top: 1px solid #999;">
+              <td class="summary-label">Total Paid:</td>
+              <td class="summary-value">${formatCurrency(totalPaid)}</td>
+              <td class="summary-label" style="color: ${pendingAmount > 0 ? '#c62828' : '#2e7d32'};">Pending:</td>
+              <td class="summary-value" style="background-color: ${pendingAmount > 0 ? '#ffcdd2' : '#c8e6c9'}; color: ${pendingAmount > 0 ? '#c62828' : '#2e7d32'};">${formatCurrency(pendingAmount)}</td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="signature-section">
+          <div class="sig-box">
+            <div class="stamp-area">STAMP</div>
+          </div>
+          <div class="sig-box">
+            <div class="sig-line">Farmer Sig</div>
+          </div>
+          <div class="sig-box">
+            <div class="sig-line">Officer Sig</div>
+          </div>
+        </div>
+
+        <div class="footer">
+          <p>Computer-generated document | Generated: ${printTime}</p>
+        </div>
       </div>
-    </div>
+    </body>
+    </html>
   `;
 
   const element = document.createElement('div');
   element.innerHTML = htmlContent;
 
   const opt = {
-    margin: [5, 5, 5, 5],
+    margin: 8,
     filename: `${storageName}_${farmerName}_${seasonName}.pdf`,
-    image: { type: 'jpeg', quality: 0.98 },
+    image: { type: 'jpeg', quality: 0.95 },
     html2canvas: { 
-      scale: 1, 
+      scale: 3, 
       useCORS: true, 
       allowTaint: true,
-      scrollY: 0, 
-      windowWidth: 794,
-      backgroundColor: '#ffffff'
+      backgroundColor: '#ffffff',
+      logging: false
     },
     jsPDF: { 
       orientation: 'portrait', 
       unit: 'mm', 
-      format: 'a4' 
+      format: 'a4',
+      compress: true
     },
-    pagebreak: { mode: 'avoid-all' },
+    pagebreak: { mode: 'avoid-all', before: [] },
   };
 
   html2pdf().set(opt).from(element).save();
