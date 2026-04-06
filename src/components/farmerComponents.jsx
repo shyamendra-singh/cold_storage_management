@@ -152,7 +152,7 @@ export const FarmerStats = ({ stats, totalCapacity, totalUsed, defaultRent }) =>
       </div>
 
       <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-3 md:p-4">
-        <p className="text-xs md:text-sm text-gray-600 font-medium">Available</p>
+        <p className="text-xs md:text-sm text-gray-600 font-medium">Available Capacity</p>
         <p className="text-2xl md:text-3xl font-bold text-yellow-600 mt-1">{availableCapacity}</p>
       </div>
 
