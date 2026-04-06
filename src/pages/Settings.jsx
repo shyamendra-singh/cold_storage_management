@@ -17,11 +17,31 @@ export const Settings = ({ onBack, onLogout }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Load settings on mount
-    setStorageNameState(getStorageName());
-    setStorageCapacityState(getStorageCapacity());
-    setRentPerBagState(getDefaultRentPerBag());
-    setLoading(false);
+    // Load settings on mount - this ensures fresh data from localStorage
+    const loadSettings = () => {
+      const name = getStorageName();
+      const capacity = getStorageCapacity();
+      const rent = getDefaultRentPerBag();
+      
+      setStorageNameState(name);
+      setStorageCapacityState(capacity);
+      setRentPerBagState(rent);
+      setLoading(false);
+    };
+    
+    loadSettings();
+  }, []);
+
+  // Listen for storage changes from other tabs/windows
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setStorageNameState(getStorageName());
+      setStorageCapacityState(getStorageCapacity());
+      setRentPerBagState(getDefaultRentPerBag());
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const handleSaveSettings = () => {
