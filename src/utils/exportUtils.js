@@ -205,25 +205,30 @@ export const printLedger = (
   const element = document.createElement('div');
   element.innerHTML = htmlContent;
 
-  const opt = {
-    margin: 8,
-    filename: `${storageName}_${farmerName}_${seasonName}.pdf`,
-    image: { type: 'jpeg', quality: 0.95 },
-    html2canvas: { 
-      scale: 3, 
-      useCORS: true, 
-      allowTaint: true,
-      backgroundColor: '#ffffff',
-      logging: false
-    },
-    jsPDF: { 
-      orientation: 'portrait', 
-      unit: 'mm', 
-      format: 'a4',
-      compress: true
-    },
-    pagebreak: { mode: 'avoid-all', before: [] },
-  };
+  // Delay to ensure DOM is ready before rendering
+  setTimeout(() => {
+    const opt = {
+      margin: [6, 6, 6, 6],
+      filename: `${storageName}_${farmerName}_${seasonName}.pdf`,
+      image: { type: 'jpeg', quality: 0.95 },
+      html2canvas: { 
+        scale: 1.5,
+        useCORS: true, 
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        windowHeight: (element.scrollHeight * 1.5) + 100,
+        windowWidth: 794,
+        logging: false,
+        letterRendering: true
+      },
+      jsPDF: { 
+        orientation: 'portrait', 
+        unit: 'mm', 
+        format: 'a4'
+      },
+      pagebreak: { avoid: 'img', mode: 'avoid-all' },
+    };
 
-  html2pdf().set(opt).from(element).save();
+    html2pdf().set(opt).from(element).save();
+  }, 500);
 };
