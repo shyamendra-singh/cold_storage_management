@@ -86,7 +86,7 @@ export const formatDate = (date) => {
  */
 export const getStorageCapacity = () => {
   const capacity = localStorage.getItem('storageCapacity');
-  return capacity ? parseInt(capacity, 10) : 1000;
+  return capacity ? parseInt(capacity, 10) : 110000;
 };
 
 /**
