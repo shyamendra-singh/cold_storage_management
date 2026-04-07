@@ -76,8 +76,23 @@ export const formatCurrency = (value) => {
  */
 export const formatDate = (date) => {
   if (!date) return '';
-  const d = new Date(date);
-  return d.toLocaleDateString('en-IN');
+
+  let d;
+  if (typeof date === 'string') {
+    d = new Date(date);
+  } else if (date && typeof date.toDate === 'function') {
+    d = date.toDate();
+  } else {
+    d = new Date(date);
+  }
+
+  if (Number.isNaN(d.getTime())) return '';
+
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+
+  return `${day}/${month}/${year}`;
 };
 
 /**
