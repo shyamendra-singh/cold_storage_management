@@ -39,8 +39,11 @@ export const FarmerCard = ({ farmer, onSelect, onEdit, onDelete }) => {
     .join('')
     .toUpperCase() || 'F';
 
-  const fatherNameText = farmer.fatherName ? `S/O ${farmer.fatherName}` : 'S/O -';
-  const locationText = `${farmer.village || '-'} • Post ${farmer.post || '-'}`;
+  const fatherNameText = farmer.fatherName
+    ? `S/O ${farmer.fatherName}`.toUpperCase()
+    : 'S/O -';
+
+  const locationText = `${farmer.village || '-'} • Post ${farmer.post || '-'}`.toUpperCase();
 
   const remainingBags = typeof farmer.remainingBags === 'number' ? farmer.remainingBags : 0;
   const remainingColorClass =
@@ -61,12 +64,8 @@ export const FarmerCard = ({ farmer, onSelect, onEdit, onDelete }) => {
             <h3 className="text-lg font-bold text-slate-900 truncate">
               {(farmer.name || 'Unnamed Farmer').toUpperCase()}
             </h3>
-            <p className="text-sm text-slate-500 truncate">
-              {fatherNameText?.toUpperCase()}
-            </p>
-            <p className="text-sm text-slate-400 truncate">
-              {locationText?.toUpperCase()}
-            </p>
+            <p className="text-sm text-slate-500 truncate">{fatherNameText}</p>
+            <p className="text-sm text-slate-400 truncate">{locationText}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -115,14 +114,18 @@ export const FarmerForm = ({ initialData = {}, onSubmit, loading, submitLabel = 
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
-    setFormData({
-      name: '',
-      fatherName: '',
-      village: '',
-      post: '',
-      phone: '',
-      ...initialData,
-    });
+    // Only reset form data if initialData has changed (for edit mode)
+    const hasInitialData = Object.keys(initialData).length > 0;
+    if (hasInitialData) {
+      setFormData({
+        name: '',
+        fatherName: '',
+        village: '',
+        post: '',
+        phone: '',
+        ...initialData,
+      });
+    }
   }, [initialData]);
 
   const validateForm = () => {
@@ -138,13 +141,23 @@ export const FarmerForm = ({ initialData = {}, onSubmit, loading, submitLabel = 
     e.preventDefault();
     if (validateForm()) {
       onSubmit(formData);
+      // Reset form only after successful submission for add mode
+      if (Object.keys(initialData).length === 0) {
+        setFormData({
+          name: '',
+          fatherName: '',
+          village: '',
+          post: '',
+          phone: '',
+        });
+      }
     }
   };
 
   return (
     <form onSubmit={handleSubmit}>
       <Input
-        label="Farmer Name *"
+        label="Farmer Name"
         placeholder="Enter farmer name"
         value={formData.name}
         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
