@@ -118,7 +118,7 @@ export const printLedgerVector = (
   y += 5;
   doc.text(`Season: ${seasonName}`, 12, y);
   y += 5;
-  doc.text(`Bag Rate: ₹${rentPerBag}/bag`, 12, y);
+  doc.text(`Bag Rate: Rs.${rentPerBag}/bag`, 12, y);
   y += 5;
   doc.text(`Date: ${new Date().toLocaleDateString('en-IN')}`, 12, y);
 
@@ -133,7 +133,7 @@ export const printLedgerVector = (
       ? 'Withdrawal'
       : 'Payment',
     tx.bags || '-',
-    '₹' + formatCurrency(tx.amount || tx.payment || 0),
+    'Rs.' + formatCurrency(tx.amount || tx.payment || 0),
     tx.note || '-',
   ]);
 
@@ -189,9 +189,9 @@ export const printLedgerVector = (
     ['Total Deposited', `${totalDeposited} bags`],
     ['Total Withdrawn', `${totalWithdrawn} bags`],
     ['Remaining Bags', `${remainingBags} bags`],
-    ['Total Rent', '₹' + formatCurrency(totalRent)],
-    ['Total Paid', '₹' + formatCurrency(totalPaid)],
-    ['Pending Amount', '₹' + formatCurrency(pendingAmount)],
+    ['Total Rent', 'Rs.' + formatCurrency(totalRent)],
+    ['Total Paid', 'Rs.' + formatCurrency(totalPaid)],
+    ['Pending Amount', 'Rs.' + formatCurrency(pendingAmount)],
   ];
 
   autoTable(doc, {
