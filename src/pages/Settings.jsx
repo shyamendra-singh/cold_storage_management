@@ -10,7 +10,7 @@ import {
 } from '../utils/calculations';
 
 export const Settings = ({ onBack, onLogout }) => {
-  const [storageName, setStorageNameState] = useState('Cold Storage Management System');
+  const [storageName, setStorageNameState] = useState('Shri Hiralal Ice & Cold Storage Pvt. Ltd.');
   const [storageCapacity, setStorageCapacityState] = useState(0);
   const [rentPerBag, setRentPerBagState] = useState(0);
   const [saved, setSaved] = useState(false);

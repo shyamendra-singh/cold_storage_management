@@ -102,8 +102,8 @@ export const Dashboard = ({ onSelectFarmer, onNavigateToSettings, onLogout }) =>
   return (
     <div className="min-h-screen bg-gray-100">
       <Header
-        title={`🌾 ${storageName}`}
-        subtitle="Manage farmer accounts and storage records"
+        title={`${storageName}`}
+        subtitle="Sahawar-Etah Road, Farauli, Sahawar, Kashganj, U.P."
       />
 
       <main className="max-w-6xl mx-auto p-4 pb-20">
