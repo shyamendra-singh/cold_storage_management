@@ -120,7 +120,7 @@ export const setDefaultRentPerBag = (rent) => {
  */
 export const getStorageName = () => {
   const name = localStorage.getItem('storageName');
-  return name ? name : 'Cold Storage Management System';
+  return name ? name : 'Shri Hiralal Ice & Cold Storage Pvt. Ltd.';
 };
 
 /**
