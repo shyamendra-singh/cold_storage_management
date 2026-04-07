@@ -57,11 +57,16 @@ export const calculatePendingAmount = (totalRent, totalPaid) => {
  * @param {number} amount - Amount to format
  * @returns {string} - Formatted currency string
  */
-export const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-  }).format(amount);
+export const formatCurrency = (value) => {
+  const number = Number(value);
+  if (Number.isNaN(number)) return '0.00';
+
+  return number
+    .toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
+    .replace(/\u00A0/g, ' ');
 };
 
 /**
