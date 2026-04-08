@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Header, Card, Modal, Button, Input, LoadingSpinner } from '../components/commonComponents';
+import { Header, Card, Modal, Button, LoadingSpinner } from '../components/commonComponents';
 import {
   TransactionForm,
   TransactionList,
@@ -13,30 +13,36 @@ import {
   addTransaction,
   updateTransaction,
   deleteTransaction,
+  getAllSessions,
 } from '../utils/firebaseService';
-import { calculateFarmerStats, getDefaultRentPerBag } from '../utils/calculations';
+import { calculateFarmerStats } from '../utils/calculations';
 import { exportToExcel, printLedger } from '../utils/exportUtils';
 
 export const FarmerLedger = ({ farmer, onBack, onLogout }) => {
   const [seasons, setSeasons] = useState([]);
   const [selectedSeason, setSelectedSeason] = useState(null);
+  const [selectedGlobalSessionId, setSelectedGlobalSessionId] = useState('');
+  const [globalSessions, setGlobalSessions] = useState([]);
+  const [targetSessionId, setTargetSessionId] = useState('');
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showAddSeason, setShowAddSeason] = useState(false);
   const [showAddTransaction, setShowAddTransaction] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [formLoading, setFormLoading] = useState(false);
-  const [seasonForm, setSeasonForm] = useState({ seasonName: '', rentPerBag: getDefaultRentPerBag() });
   const [error, setError] = useState(null);
 
-  const loadSeasons = useCallback(async () => {
+  const loadSeasons = useCallback(async (sessionId) => {
     try {
       setLoading(true);
       setError(null);
       const fetchedSeasons = await getSeasons(farmer.id);
-      setSeasons(fetchedSeasons);
-      if (fetchedSeasons.length > 0) {
-        setSelectedSeason(fetchedSeasons[0]);
+      const filteredSeasons = fetchedSeasons.filter(season => season.sessionId === sessionId);
+      setSeasons(filteredSeasons);
+      if (filteredSeasons.length > 0) {
+        setSelectedSeason(filteredSeasons[0]);
+      } else {
+        setSelectedSeason(null);
+        setTransactions([]);
       }
     } catch (err) {
       setError('Failed to load seasons');
@@ -56,52 +62,95 @@ export const FarmerLedger = ({ farmer, onBack, onLogout }) => {
   }, [farmer.id]);
 
   useEffect(() => {
-    loadSeasons();
-  }, [loadSeasons]);
+    const loadGlobalSessions = async () => {
+      try {
+        const sessions = await getAllSessions();
+        setGlobalSessions(sessions);
+        if (sessions.length > 0 && !selectedGlobalSessionId) {
+          setSelectedGlobalSessionId(sessions[0].id);
+        }
+      } catch (err) {
+        console.error('Error loading sessions:', err);
+      }
+    };
+
+    loadGlobalSessions();
+  }, [selectedGlobalSessionId]);
 
   useEffect(() => {
-    if (selectedSeason) {
+    if (selectedGlobalSessionId) {
+      loadSeasons(selectedGlobalSessionId);
+    }
+  }, [selectedGlobalSessionId, loadSeasons]);
+
+  useEffect(() => {
+    if (selectedSeason && selectedSeason.id) {
       loadTransactions(selectedSeason.id);
+    } else if (selectedSeason && !selectedSeason.id) {
+      setTransactions([]);
     }
   }, [selectedSeason, loadTransactions]);
 
-  const handleAddSeason = async () => {
-    if (!seasonForm.seasonName.trim()) {
-      alert('Please enter season name');
+  const handleSelectGlobalSession = (session) => {
+    setSelectedGlobalSessionId(session.id);
+    // loadSeasons will be called via useEffect
+  };
+
+  const handleTransferToSession = async () => {
+    if (!selectedSeason) {
+      alert('Please select a season to transfer.');
+      return;
+    }
+
+    if (!targetSessionId) {
+      alert('Please choose a target session.');
+      return;
+    }
+
+    if (selectedSeason.sessionId === targetSessionId) {
+      alert('Farmer is already in the selected session.');
+      return;
+    }
+
+    const targetSession = globalSessions.find((session) => session.id === targetSessionId);
+    if (!targetSession) {
+      alert('Selected session not found.');
+      return;
+    }
+
+    const alreadyHasSession = seasons.some(
+      (season) => season.sessionId === targetSessionId
+    );
+    if (alreadyHasSession) {
+      alert('This farmer already has a season for the chosen session.');
       return;
     }
 
     try {
       setFormLoading(true);
-      await addSeason(farmer.id, {
-        seasonName: seasonForm.seasonName,
-        rentPerBag: parseFloat(seasonForm.rentPerBag),
+      const newSeasonId = await addSeason(farmer.id, {
+        seasonName: targetSession.sessionName,
+        rentPerBag: targetSession.rentPerBag,
+        sessionId: targetSession.id,
       });
-      setSeasonForm({ seasonName: '', rentPerBag: getDefaultRentPerBag() });
-      setShowAddSeason(false);
       await loadSeasons();
+      setSelectedSeason({
+        id: newSeasonId,
+        seasonName: targetSession.sessionName,
+        rentPerBag: targetSession.rentPerBag,
+        sessionId: targetSession.id,
+      });
+      alert('Farmer transferred to new session successfully.');
     } catch (err) {
-      alert('Error adding season: ' + err.message);
+      alert('Error transferring session: ' + err.message);
     } finally {
       setFormLoading(false);
     }
   };
 
-  const handleDeleteSeason = async (seasonId) => {
-    if (window.confirm('Delete this season and all its transactions?')) {
-      try {
-        await deleteSeason(farmer.id, seasonId);
-        setSelectedSeason(null);
-        await loadSeasons();
-      } catch (err) {
-        alert('Error deleting season: ' + err.message);
-      }
-    }
-  };
-
   const handleAddTransaction = async (formData) => {
-    if (!selectedSeason) {
-      alert('Please select a season first');
+    if (!selectedSeason || !selectedSeason.id) {
+      alert('Please select a farmer session with data first');
       return;
     }
 
@@ -134,8 +183,8 @@ export const FarmerLedger = ({ farmer, onBack, onLogout }) => {
   };
 
   const handleExport = () => {
-    if (!selectedSeason) {
-      alert('Please select a season first');
+    if (!selectedSeason || !selectedSeason.id) {
+      alert('Please select a farmer session with data first');
       return;
     }
     const stats = calculateFarmerStats(transactions);
@@ -149,8 +198,8 @@ export const FarmerLedger = ({ farmer, onBack, onLogout }) => {
   };
 
   const handlePrint = () => {
-    if (!selectedSeason) {
-      alert('Please select a season first');
+    if (!selectedSeason || !selectedSeason.id) {
+      alert('Please select a farmer session with data first');
       return;
     }
     const stats = calculateFarmerStats(transactions);
@@ -188,48 +237,37 @@ export const FarmerLedger = ({ farmer, onBack, onLogout }) => {
                 <LoadingSpinner />
               ) : (
                 <div>
-                  {seasons.length === 0 ? (
-                    <p className="text-gray-600 text-center py-4">📭 No seasons yet</p>
+                  {globalSessions.length === 0 ? (
+                    <p className="text-gray-600 text-center py-4">📭 No sessions available</p>
                   ) : (
                     <div className="space-y-3">
-                      {seasons.map((season) => (
-                        <div
-                          key={season.id}
-                          className={`p-3 rounded-lg cursor-pointer transition ${
-                            selectedSeason?.id === season.id
+                      {globalSessions.map((session) => (
+                        <button
+                          key={session.id}
+                          type="button"
+                          onClick={() => handleSelectGlobalSession(session)}
+                          className={`w-full text-left p-3 rounded-lg transition ${
+                            selectedGlobalSessionId === session.id
                               ? 'bg-blue-500 text-white border-2 border-blue-600'
                               : 'bg-gray-50 border-2 border-gray-200 hover:bg-gray-100'
                           }`}
-                          onClick={() => setSelectedSeason(season)}
                         >
-                          <div className="flex justify-between items-start gap-3">
-                            <div>
-                              <p className="font-bold">{season.seasonName}</p>
-                              <p className="text-sm opacity-90">₹{season.rentPerBag}/bag</p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteSeason(season.id);
-                              }}
-                              className="text-sm text-red-600 hover:text-red-800 font-semibold"
-                            >
-                              Delete
-                            </button>
+                          <div className="flex justify-between items-center gap-3">
+                            <p className="font-bold">{session.sessionName}</p>
+                            {seasons.some((season) => season.sessionId === session.id) ? (
+                              <span className="text-xs text-green-700 bg-green-100 rounded-full px-2 py-1">
+                                Session data available
+                              </span>
+                            ) : (
+                              <span className="text-xs text-gray-700 bg-gray-100 rounded-full px-2 py-1">
+                                No data
+                              </span>
+                            )}
                           </div>
-                        </div>
+                        </button>
                       ))}
                     </div>
                   )}
-                  <Button
-                    variant="success"
-                    size="lg"
-                    onClick={() => setShowAddSeason(true)}
-                    className="!w-full mt-4"
-                  >
-                    ➕ Add Season
-                  </Button>
                 </div>
               )}
             </Card>
@@ -276,17 +314,50 @@ export const FarmerLedger = ({ farmer, onBack, onLogout }) => {
                   >
                     🖨️ Print
                   </Button>
-                  {onLogout && (
+                </div>
+
+                <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3">Transfer Farmer Session</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Select Target Session
+                      </label>
+                      <select
+                        value={targetSessionId}
+                        onChange={(e) => setTargetSessionId(e.target.value)}
+                        className="w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:border-blue-600 transition border-gray-300"
+                      >
+                        <option value="">Choose a session</option>
+                        {globalSessions
+                          .filter((session) => session.id !== selectedSeason?.sessionId)
+                          .map((session) => (
+                            <option key={session.id} value={session.id}>
+                              {session.sessionName} ({session.rentPerBag}/bag)
+                            </option>
+                          ))}
+                      </select>
+                    </div>
                     <Button
-                      variant="danger"
+                      variant="success"
                       size="sm"
-                      onClick={onLogout}
+                      onClick={handleTransferToSession}
                       className="flex-1 md:flex-none"
                     >
-                      🔒 Logout
+                      🔁 Transfer Session
                     </Button>
-                  )}
+                  </div>
                 </div>
+                {onLogout && (
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={onLogout}
+                    className="flex-1 md:flex-none"
+                  >
+                    🔒 Logout
+                  </Button>
+                )}
 
                 {/* Transactions */}
                 <Card title="Transactions">
@@ -314,34 +385,6 @@ export const FarmerLedger = ({ farmer, onBack, onLogout }) => {
           </div>
         </div>
 
-        {/* Add Season Modal */}
-        <Modal
-          isOpen={showAddSeason}
-          title="Add New Season"
-          onClose={() => setShowAddSeason(false)}
-          onSubmit={handleAddSeason}
-          submitText={formLoading ? 'Adding...' : 'Add Season'}
-        >
-          <Input
-            label="Season Name *"
-            placeholder="e.g., 2025-26"
-            value={seasonForm.seasonName}
-            onChange={(e) => setSeasonForm({ ...seasonForm, seasonName: e.target.value })}
-            required
-          />
-          <Input
-            label="Rent per Bag (₹) *"
-            type="number"
-            placeholder="Enter rent per bag"
-            value={seasonForm.rentPerBag}
-            onChange={(e) =>
-              setSeasonForm({ ...seasonForm, rentPerBag: e.target.value })
-            }
-            required
-            min="0"
-            step="0.01"
-          />
-        </Modal>
 
         {/* Add/Edit Transaction Modal */}
         <Modal

@@ -180,13 +180,21 @@ export const TransactionList = ({ transactions, onEdit, onDelete }) => {
         >
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2">
-              <span className="inline-block px-3 py-1 bg-blue-100 text-blue-600 rounded-full text-sm font-semibold">
-                {tx.type === 'deposit'
-                  ? '📥 Deposit'
+              <span
+              className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
+                tx.type === 'deposit'
+                  ? 'bg-green-100 text-green-700'
                   : tx.type === 'withdrawal'
-                  ? '📤 Withdrawal'
-                  : '💰 Payment'}
-              </span>
+                  ? 'bg-orange-100 text-orange-700'
+                  : 'bg-purple-100 text-purple-700'
+              }`}
+            >
+              {tx.type === 'deposit'
+                ? '📥 Deposit'
+                : tx.type === 'withdrawal'
+                ? '📤 Withdrawal'
+                : '💰 Payment'}
+            </span>
               <span className="text-sm text-gray-600">{formatDate(tx.date)}</span>
             </div>
             <div className="grid grid-cols-2 gap-2 text-sm">

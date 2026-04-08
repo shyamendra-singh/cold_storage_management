@@ -8,6 +8,7 @@ import {
   doc,
   query,
   orderBy,
+  where,
   Timestamp,
 } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -47,6 +48,107 @@ export const getAllFarmers = async () => {
     return farmers;
   } catch (error) {
     console.error('Error getting farmers:', error);
+    throw error;
+  }
+};
+
+/**
+ * Add a global session
+ */
+export const addGlobalSession = async (sessionData) => {
+  try {
+    const docRef = await addDoc(collection(db, 'sessions'), {
+      ...sessionData,
+      createdAt: Timestamp.now(),
+    });
+    return docRef.id;
+  } catch (error) {
+    console.error('Error adding session:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get all global sessions
+ */
+export const getAllSessions = async () => {
+  try {
+    const q = query(
+      collection(db, 'sessions'),
+      orderBy('createdAt', 'desc')
+    );
+    const querySnapshot = await getDocs(q);
+    const sessions = [];
+    querySnapshot.forEach((doc) => {
+      sessions.push({ id: doc.id, ...doc.data() });
+    });
+    return sessions;
+  } catch (error) {
+    console.error('Error getting sessions:', error);
+    throw error;
+  }
+};
+
+export const updateGlobalSession = async (sessionId, sessionData) => {
+  try {
+    const docRef = doc(db, 'sessions', sessionId);
+    await updateDoc(docRef, sessionData);
+  } catch (error) {
+    console.error('Error updating session:', error);
+    throw error;
+  }
+};
+
+export const deleteGlobalSession = async (sessionId) => {
+  try {
+    await deleteDoc(doc(db, 'sessions', sessionId));
+  } catch (error) {
+    console.error('Error deleting session:', error);
+    throw error;
+  }
+};
+
+export const clearSessionFromFarmerSeasons = async (sessionId) => {
+  try {
+    const farmers = await getAllFarmers();
+    for (const farmer of farmers) {
+      const seasonsQuery = query(
+        collection(db, 'farmers', farmer.id, 'seasons'),
+        where('sessionId', '==', sessionId)
+      );
+      const seasonSnapshot = await getDocs(seasonsQuery);
+      const updates = [];
+      seasonSnapshot.forEach((docSnap) => {
+        updates.push(
+          updateDoc(doc(db, 'farmers', farmer.id, 'seasons', docSnap.id), {
+            sessionId: '',
+          })
+        );
+      });
+      await Promise.all(updates);
+    }
+  } catch (error) {
+    console.error('Error clearing session from farmer seasons:', error);
+    throw error;
+  }
+};
+
+export const updateSessionForFarmers = async (oldSessionId, newSessionId) => {
+  try {
+    const farmers = await getAllFarmers();
+    for (const farmer of farmers) {
+      const seasonsQuery = query(
+        collection(db, 'farmers', farmer.id, 'seasons'),
+        where('sessionId', '==', oldSessionId)
+      );
+      const seasonSnapshot = await getDocs(seasonsQuery);
+      const updates = seasonSnapshot.docs.map((docSnap) =>
+        updateDoc(docSnap.ref, { sessionId: newSessionId })
+      );
+      await Promise.all(updates);
+    }
+  } catch (error) {
+    console.error('Error updating session for farmers:', error);
     throw error;
   }
 };
@@ -289,7 +391,9 @@ export const getAllFarmerTransactions = async (farmerId) => {
     for (const season of seasons) {
       const transactions = await getTransactions(farmerId, season.id);
       allTransactions.push({
+        id: season.id,
         season: season.id,
+        sessionId: season.sessionId,
         seasonName: season.seasonName,
         rentPerBag: season.rentPerBag,
         transactions,

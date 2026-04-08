@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Input, Button } from './commonComponents';
+import { Input, Select, Button } from './commonComponents';
 
 /**
  * FarmerSearch Component
@@ -102,13 +102,23 @@ export const FarmerCard = ({ farmer, onSelect, onEdit, onDelete }) => {
 /**
  * FarmerForm Component
  */
-export const FarmerForm = ({ initialData = {}, onSubmit, loading, submitLabel = 'Save Farmer' }) => {
+export const FarmerForm = ({
+  initialData = {},
+  onSubmit,
+  loading,
+  submitLabel = 'Save Farmer',
+  sessionOptions = [],
+  isEditing = false,
+}) => {
   const [formData, setFormData] = useState({
     name: '',
     fatherName: '',
     village: '',
     post: '',
     phone: '',
+    sessionId: sessionOptions[0]?.value || '',
+    rentPerBag: '',
+    initialBags: '',
     ...initialData,
   });
   const [errors, setErrors] = useState({});
@@ -123,15 +133,27 @@ export const FarmerForm = ({ initialData = {}, onSubmit, loading, submitLabel = 
         village: '',
         post: '',
         phone: '',
+        sessionId: initialData.sessionId || sessionOptions[0]?.value || '',
+        rentPerBag: initialData.rentPerBag || '',
+        initialBags: initialData.initialBags || '',
         ...initialData,
       });
     }
-  }, [initialData]);
+  }, [initialData, sessionOptions]);
 
   const validateForm = () => {
     const newErrors = {};
     if (!formData.name.trim()) {
       newErrors.name = 'Farmer name is required';
+    }
+    if (!isEditing && !formData.sessionId) {
+      newErrors.sessionId = 'Session is required';
+    }
+    if (!formData.rentPerBag || parseFloat(formData.rentPerBag) <= 0) {
+      newErrors.rentPerBag = 'Rate per bag is required';
+    }
+    if (!formData.initialBags || parseFloat(formData.initialBags) < 0) {
+      newErrors.initialBags = 'Initial deposit bags is required';
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -186,14 +208,39 @@ export const FarmerForm = ({ initialData = {}, onSubmit, loading, submitLabel = 
         onChange={(e) => setFormData({ ...formData, post: e.target.value })}
       />
 
-      <Input
-        label="Phone Number (Optional)"
-        placeholder="Enter phone number"
-        type="tel"
-        value={formData.phone}
-        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-      />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+          label="Initial Deposit Bags"
+          placeholder="Enter initial bags"
+          type="number"
+          value={formData.initialBags}
+          onChange={(e) => setFormData({ ...formData, initialBags: e.target.value })}
+          error={errors.initialBags}
+          required
+          min="0"
+          step="1"
+        />
 
+        <Input
+          label="Rate per Bag"
+          placeholder="Enter rent rate"
+          type="number"
+          value={formData.rentPerBag}
+          onChange={(e) => setFormData({ ...formData, rentPerBag: e.target.value })}
+          error={errors.rentPerBag}
+          required
+          min="0"
+          step="0.01"
+        />
+      </div>
+          <Select
+        label={isEditing ? "Session (Optional)" : "Session"}
+        options={isEditing ? [{ value: '', label: 'No Session' }, ...sessionOptions] : sessionOptions}
+        value={formData.sessionId}
+        onChange={(e) => setFormData({ ...formData, sessionId: e.target.value })}
+        error={errors.sessionId}
+        required={!isEditing}
+      />
       <Button variant="success" size="lg" disabled={loading} className="!w-full">
         {loading ? `${submitLabel}...` : submitLabel}
       </Button>
