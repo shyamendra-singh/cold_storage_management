@@ -118,7 +118,7 @@ export const setStorageCapacity = (capacity) => {
  */
 export const getDefaultRentPerBag = () => {
   const rent = localStorage.getItem('defaultRentPerBag');
-  return rent ? parseFloat(rent) : 50;
+  return rent ? parseFloat(rent) : 150;
 };
 
 /**
