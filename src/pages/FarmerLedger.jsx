@@ -8,7 +8,6 @@ import {
 import {
   getSeasons,
   addSeason,
-  deleteSeason,
   getTransactions,
   addTransaction,
   updateTransaction,

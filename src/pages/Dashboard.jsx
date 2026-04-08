@@ -20,7 +20,6 @@ import {
   addGlobalSession,
   updateGlobalSession,
   deleteGlobalSession,
-  clearSessionFromFarmerSeasons,
   updateSessionForFarmers,
 } from '../utils/firebaseService';
 import {
@@ -67,11 +66,6 @@ export const Dashboard = ({ onSelectFarmer, onNavigateToSettings, onLogout }) =>
   const [targetSessionForDelete, setTargetSessionForDelete] = useState('');
   const [showAddSession, setShowAddSession] = useState(false);
 
-  useEffect(() => {
-    loadSessions();
-    loadFarmers();
-  }, []);
-
   const loadSessions = useCallback(async () => {
     try {
       const fetchedSessions = await getAllSessions();
@@ -84,7 +78,12 @@ export const Dashboard = ({ onSelectFarmer, onNavigateToSettings, onLogout }) =>
     } catch (err) {
       console.error('Failed to load sessions:', err);
     }
-  }, []);
+  }, [selectedSession]);
+
+  useEffect(() => {
+    loadSessions();
+    loadFarmers();
+  }, [loadSessions]);
 
   const loadFarmers = async () => {
     try {
