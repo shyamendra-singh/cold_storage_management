@@ -65,6 +65,37 @@ export const Login = ({ onLogin }) => {
           </div>
         </Card>
       </div>
+
+      {/* Footer */}
+      <footer className="absolute bottom-0 left-0 right-0 bg-gray-800 text-white py-6 mt-8">
+        <div className="max-w-6xl mx-auto px-4 text-center">
+          <p className="text-sm mb-2">Developed by Shyamendra Singh</p>
+          <div className="flex justify-center space-x-6">
+            <a
+              href="mailto:shyamendratomar736@gmail.com"
+              className="text-blue-400 hover:text-blue-300 transition-colors"
+            >
+              📧 Email
+            </a>
+            <a
+              href="tel:+917302886011"
+              className="text-green-400 hover:text-green-300 transition-colors"
+            >
+              📞 Call
+            </a>
+            <a
+              href="https://www.linkedin.com/in/shyamendrasingh/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-500 hover:text-blue-400 transition-colors"
+            >
+              💼 LinkedIn
+            </a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
+
+
