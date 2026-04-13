@@ -34,6 +34,7 @@ import {
   getDefaultRentPerBag,
   getStorageName,
 } from '../utils/calculations';
+import { getFarmerAddress, normalizeFarmerForForm } from '../utils/farmerUtils';
 
 export const Dashboard = ({ onSelectFarmer, onNavigateToSettings, onLogout }) => {
   const [farmers, setFarmers] = useState([]);
@@ -99,7 +100,7 @@ export const Dashboard = ({ onSelectFarmer, onNavigateToSettings, onLogout }) =>
             return sum + stats.remainingBags;
           }, 0);
 
-          return { ...farmer, seasons, remainingBags };
+          return { ...normalizeFarmerForForm(farmer), seasons, remainingBags };
         })
       );
 
@@ -124,7 +125,9 @@ export const Dashboard = ({ onSelectFarmer, onNavigateToSettings, onLogout }) =>
 
     return farmersList.filter((farmer) => {
       const matchesSearch =
-        !query || farmer.name.toLowerCase().includes(query);
+        !query ||
+        farmer.name.toLowerCase().includes(query) ||
+        getFarmerAddress(farmer).toLowerCase().includes(query);
 
       if (!selectedSession) {
         return matchesSearch;
@@ -246,8 +249,7 @@ export const Dashboard = ({ onSelectFarmer, onNavigateToSettings, onLogout }) =>
       const farmerId = await addFarmer({
         name: formData.name,
         fatherName: formData.fatherName,
-        village: formData.village,
-        post: formData.post,
+        address: formData.address?.trim() || '',
         phone: formData.phone,
         createdAt: new Date(),
       });
@@ -311,7 +313,14 @@ export const Dashboard = ({ onSelectFarmer, onNavigateToSettings, onLogout }) =>
     if (!editingFarmer) return;
     try {
       setEditLoading(true);
-      await updateFarmer(editingFarmer.id, updatedData);
+      await updateFarmer(editingFarmer.id, {
+        name: updatedData.name,
+        fatherName: updatedData.fatherName,
+        address: updatedData.address?.trim() || '',
+        phone: updatedData.phone || '',
+        village: '',
+        post: '',
+      });
       // Update the season's sessionId if changed
       if (
         editingFarmer.seasonId &&
@@ -384,7 +393,7 @@ export const Dashboard = ({ onSelectFarmer, onNavigateToSettings, onLogout }) =>
             return {
               farmerName: farmer.name || 'Unnamed Farmer',
               fatherName: farmer.fatherName || '-',
-              village: farmer.village || '-',
+              address: getFarmerAddress(farmer) || '-',
               totalDeposited: stats.totalDeposited,
               totalWithdrawn: stats.totalWithdrawn,
               remainingBags: stats.remainingBags,

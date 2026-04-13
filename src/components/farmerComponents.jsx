@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { Input, Select, Button } from './commonComponents';
+import { getFarmerAddress, normalizeFarmerForForm } from '../utils/farmerUtils';
 
 /**
  * FarmerSearch Component
@@ -43,7 +44,7 @@ export const FarmerCard = ({ farmer, onSelect, onEdit, onDelete }) => {
     ? `S/O ${farmer.fatherName}`.toUpperCase()
     : 'S/O -';
 
-  const locationText = `${farmer.village || '-'} • Post ${farmer.post || '-'}`.toUpperCase();
+  const locationText = (getFarmerAddress(farmer) || 'Address -').toUpperCase();
 
   const remainingBags = typeof farmer.remainingBags === 'number' ? farmer.remainingBags : 0;
   const remainingColorClass =
@@ -112,16 +113,15 @@ export const FarmerForm = ({
 }) => {
   const nameInputRef = useRef();
   const formRef = useRef();
-  const [resetTrigger, setResetTrigger] = useState(false);
+  const shouldRefocusAfterReset = useRef(false);
   const [formData, setFormData] = useState({
     name: '',
     fatherName: '',
-    village: '',
-    post: '',
+    address: '',
     phone: '',
     sessionId: sessionOptions[0]?.value || '',
     initialBags: '',
-    ...initialData,
+    ...normalizeFarmerForForm(initialData),
   });
   const [errors, setErrors] = useState({});
 
@@ -132,24 +132,42 @@ export const FarmerForm = ({
       setFormData({
         name: '',
         fatherName: '',
-        village: '',
-        post: '',
+        address: '',
         phone: '',
         sessionId: initialData.sessionId || sessionOptions[0]?.value || '',
         initialBags: initialData.initialBags || '',
-        ...initialData,
+        ...normalizeFarmerForForm(initialData),
       });
     }
   }, [initialData, sessionOptions]);
 
   useLayoutEffect(() => {
-    if (resetTrigger && nameInputRef.current) {
-      nameInputRef.current.focus();
+    const isAddMode = Object.keys(initialData).length === 0;
+    const isReadyForNextEntry =
+      isAddMode &&
+      !loading &&
+      shouldRefocusAfterReset.current &&
+      !formData.name &&
+      !formData.fatherName &&
+      !formData.address &&
+      !formData.initialBags;
+
+    if (!isReadyForNextEntry) {
+      return;
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
       if (formRef.current) {
         formRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
-    }
-  }, [resetTrigger]);
+      if (nameInputRef.current) {
+        nameInputRef.current.focus();
+      }
+      shouldRefocusAfterReset.current = false;
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [formData, initialData, loading]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -172,16 +190,15 @@ export const FarmerForm = ({
       onSubmit(formData);
       // Reset form only after successful submission for add mode
       if (Object.keys(initialData).length === 0) {
+        shouldRefocusAfterReset.current = true;
         setFormData(prev => ({
           ...prev,
           name: '',
           fatherName: '',
-          village: '',
-          post: '',
+          address: '',
           phone: '',
           initialBags: '',
         }));
-        setResetTrigger(prev => !prev);
       }
     }
   };
@@ -189,7 +206,7 @@ export const FarmerForm = ({
   return (
     <form ref={formRef} onSubmit={handleSubmit}>
       <Select
-        label={isEditing ? "Session (Optional)" : "Session"}
+        label={isEditing ? 'Session (Optional)' : 'Session'}
         options={isEditing ? [{ value: '', label: 'No Session' }, ...sessionOptions] : sessionOptions}
         value={formData.sessionId}
         onChange={(e) => setFormData({ ...formData, sessionId: e.target.value })}
@@ -216,17 +233,10 @@ export const FarmerForm = ({
       />
 
       <Input
-        label="Village"
-        placeholder="Enter village name"
-        value={formData.village}
-        onChange={(e) => setFormData({ ...formData, village: e.target.value })}
-      />
-
-      <Input
-        label="Post"
-        placeholder="Enter post name"
-        value={formData.post}
-        onChange={(e) => setFormData({ ...formData, post: e.target.value })}
+        label="Address"
+        placeholder="Enter address"
+        value={formData.address}
+        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
       />
 
       <Input

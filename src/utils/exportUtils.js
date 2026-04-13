@@ -243,7 +243,7 @@ export const exportAllFarmerLedgersExcel = (allData) => {
     [
       'Farmer Name',
       'Father Name',
-      'Village',
+      'Address',
       'Bags Deposited',
       'Bags Withdrawn',
       'Remaining Bags',
@@ -257,7 +257,7 @@ export const exportAllFarmerLedgersExcel = (allData) => {
     worksheetData.push([
       row.farmerName,
       row.fatherName,
-      row.village,
+      row.address,
       row.totalDeposited,
       row.totalWithdrawn,
       row.remainingBags,
@@ -287,7 +287,7 @@ export const printAllFarmerLedgersPDF = (allData) => {
   const body = allData.map((row) => [
     row.farmerName,
     row.fatherName,
-    row.village,
+    row.address,
     row.totalDeposited,
     row.totalWithdrawn,
     row.remainingBags,
@@ -302,7 +302,7 @@ export const printAllFarmerLedgersPDF = (allData) => {
       [
         'Farmer Name',
         'Father Name',
-        'Village',
+        'Address',
         'Bags Deposited',
         'Bags Withdrawn',
         'Remaining Bags',
