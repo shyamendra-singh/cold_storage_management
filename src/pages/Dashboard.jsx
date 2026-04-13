@@ -262,7 +262,7 @@ export const Dashboard = ({ onSelectFarmer, onNavigateToSettings, onLogout }) =>
 
       const seasonId = await addSeason(farmerId, {
         seasonName: session.sessionName || 'Session',
-        rentPerBag: parseFloat(formData.rentPerBag) || session.rentPerBag || getDefaultRentPerBag(),
+        rentPerBag: session.rentPerBag || getDefaultRentPerBag(),
         sessionId: session.id,
         createdAt: new Date(),
       });
@@ -275,7 +275,6 @@ export const Dashboard = ({ onSelectFarmer, onNavigateToSettings, onLogout }) =>
         });
       }
 
-      setShowAddForm(false);
       await loadFarmers();
       if (session) {
         setSelectedSession(session);

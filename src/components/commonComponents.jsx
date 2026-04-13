@@ -1,3 +1,5 @@
+import React, { forwardRef } from 'react';
+
 /**
  * Header Component
  * Reusable header for all pages
@@ -82,7 +84,7 @@ export const Button = ({
  * Input Component
  * Reusable input field
  */
-export const Input = ({
+export const Input = forwardRef(({
   label,
   type = 'text',
   placeholder,
@@ -92,7 +94,7 @@ export const Input = ({
   required = false,
   className = '',
   ...props
-}) => {
+}, ref) => {
   return (
     <div className="mb-4">
       {label && (
@@ -102,6 +104,7 @@ export const Input = ({
         </label>
       )}
       <input
+        ref={ref}
         type={type}
         placeholder={placeholder}
         value={value}
@@ -114,7 +117,7 @@ export const Input = ({
       {error && <p className="text-red-600 text-sm mt-1">{error}</p>}
     </div>
   );
-};
+});
 
 /**
  * TextArea Component

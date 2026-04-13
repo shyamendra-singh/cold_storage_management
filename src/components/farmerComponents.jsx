@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { Input, Select, Button } from './commonComponents';
 
 /**
@@ -110,6 +110,9 @@ export const FarmerForm = ({
   sessionOptions = [],
   isEditing = false,
 }) => {
+  const nameInputRef = useRef();
+  const formRef = useRef();
+  const [resetTrigger, setResetTrigger] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     fatherName: '',
@@ -117,7 +120,6 @@ export const FarmerForm = ({
     post: '',
     phone: '',
     sessionId: sessionOptions[0]?.value || '',
-    rentPerBag: '',
     initialBags: '',
     ...initialData,
   });
@@ -134,12 +136,20 @@ export const FarmerForm = ({
         post: '',
         phone: '',
         sessionId: initialData.sessionId || sessionOptions[0]?.value || '',
-        rentPerBag: initialData.rentPerBag || '',
         initialBags: initialData.initialBags || '',
         ...initialData,
       });
     }
   }, [initialData, sessionOptions]);
+
+  useLayoutEffect(() => {
+    if (resetTrigger && nameInputRef.current) {
+      nameInputRef.current.focus();
+      if (formRef.current) {
+        formRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  }, [resetTrigger]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -148,9 +158,6 @@ export const FarmerForm = ({
     }
     if (!isEditing && !formData.sessionId) {
       newErrors.sessionId = 'Session is required';
-    }
-    if (!formData.rentPerBag || parseFloat(formData.rentPerBag) <= 0) {
-      newErrors.rentPerBag = 'Rate per bag is required';
     }
     if (!formData.initialBags || parseFloat(formData.initialBags) < 0) {
       newErrors.initialBags = 'Initial deposit bags is required';
@@ -165,19 +172,31 @@ export const FarmerForm = ({
       onSubmit(formData);
       // Reset form only after successful submission for add mode
       if (Object.keys(initialData).length === 0) {
-        setFormData({
+        setFormData(prev => ({
+          ...prev,
           name: '',
           fatherName: '',
           village: '',
           post: '',
           phone: '',
-        });
+          initialBags: '',
+        }));
+        setResetTrigger(prev => !prev);
       }
     }
   };
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form ref={formRef} onSubmit={handleSubmit}>
+      <Select
+        label={isEditing ? "Session (Optional)" : "Session"}
+        options={isEditing ? [{ value: '', label: 'No Session' }, ...sessionOptions] : sessionOptions}
+        value={formData.sessionId}
+        onChange={(e) => setFormData({ ...formData, sessionId: e.target.value })}
+        error={errors.sessionId}
+        required={!isEditing}
+      />
+
       <Input
         label="Farmer Name"
         placeholder="Enter farmer name"
@@ -185,6 +204,8 @@ export const FarmerForm = ({
         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
         error={errors.name}
         required
+        autoFocus
+        ref={nameInputRef}
       />
 
       <Input
@@ -208,39 +229,18 @@ export const FarmerForm = ({
         onChange={(e) => setFormData({ ...formData, post: e.target.value })}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-          label="Initial Deposit Bags"
-          placeholder="Enter initial bags"
-          type="number"
-          value={formData.initialBags}
-          onChange={(e) => setFormData({ ...formData, initialBags: e.target.value })}
-          error={errors.initialBags}
-          required
-          min="0"
-          step="1"
-        />
-
-        <Input
-          label="Rate per Bag"
-          placeholder="Enter rent rate"
-          type="number"
-          value={formData.rentPerBag}
-          onChange={(e) => setFormData({ ...formData, rentPerBag: e.target.value })}
-          error={errors.rentPerBag}
-          required
-          min="0"
-          step="0.01"
-        />
-      </div>
-          <Select
-        label={isEditing ? "Session (Optional)" : "Session"}
-        options={isEditing ? [{ value: '', label: 'No Session' }, ...sessionOptions] : sessionOptions}
-        value={formData.sessionId}
-        onChange={(e) => setFormData({ ...formData, sessionId: e.target.value })}
-        error={errors.sessionId}
-        required={!isEditing}
+      <Input
+        label="Initial Deposit Bags"
+        placeholder="Enter initial bags"
+        type="number"
+        value={formData.initialBags}
+        onChange={(e) => setFormData({ ...formData, initialBags: e.target.value })}
+        error={errors.initialBags}
+        required
+        min="0"
+        step="1"
       />
+
       <Button variant="success" size="lg" disabled={loading} className="!w-full">
         {loading ? `${submitLabel}...` : submitLabel}
       </Button>
