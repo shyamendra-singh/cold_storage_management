@@ -34,11 +34,17 @@ import {
   getDefaultRentPerBag,
   getStorageName,
 } from '../utils/calculations';
-import { getFarmerAddress, normalizeFarmerForForm } from '../utils/farmerUtils';
+import {
+  getFarmerAddress,
+  normalizeFarmerForForm,
+  sortFarmersBySequenceAsc,
+  sortFarmersBySequenceDesc,
+} from '../utils/farmerUtils';
 
 export const Dashboard = ({ onSelectFarmer, onNavigateToSettings, onLogout }) => {
   const [farmers, setFarmers] = useState([]);
   const [filteredFarmers, setFilteredFarmers] = useState([]);
+  const [showAllFarmers, setShowAllFarmers] = useState(false);
   const [sessions, setSessions] = useState([]);
   const [selectedSession, setSelectedSession] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -104,8 +110,9 @@ export const Dashboard = ({ onSelectFarmer, onNavigateToSettings, onLogout }) =>
         })
       );
 
-      setFarmers(farmersWithStats);
-      setFilteredFarmers(farmersWithStats);
+      const sortedFarmers = sortFarmersBySequenceDesc(farmersWithStats);
+      setFarmers(sortedFarmers);
+      setFilteredFarmers(sortedFarmers);
 
       const totalBags = farmersWithStats.reduce(
         (sum, farmer) => sum + farmer.remainingBags,
@@ -123,7 +130,7 @@ export const Dashboard = ({ onSelectFarmer, onNavigateToSettings, onLogout }) =>
   const filterFarmers = useCallback((farmersList, searchTerm = '') => {
     const query = searchTerm.trim().toLowerCase();
 
-    return farmersList.filter((farmer) => {
+    const filteredList = farmersList.filter((farmer) => {
       const matchesSearch =
         !query ||
         farmer.name.toLowerCase().includes(query) ||
@@ -138,13 +145,17 @@ export const Dashboard = ({ onSelectFarmer, onNavigateToSettings, onLogout }) =>
       );
       return matchesSearch && matchesSession;
     });
+
+    return sortFarmersBySequenceDesc(filteredList);
   }, [selectedSession]);
 
   const handleSearch = (searchTerm) => {
+    setShowAllFarmers(false);
     setFilteredFarmers(filterFarmers(farmers, searchTerm));
   };
 
   useEffect(() => {
+    setShowAllFarmers(false);
     setFilteredFarmers(filterFarmers(farmers));
   }, [selectedSession, farmers, filterFarmers]);
 
@@ -377,7 +388,7 @@ export const Dashboard = ({ onSelectFarmer, onNavigateToSettings, onLogout }) =>
 
       if (isAll) {
         const exportRows = await Promise.all(
-          farmers.map(async (farmer) => {
+          sortFarmersBySequenceAsc(farmers).map(async (farmer) => {
             const seasons = await getAllFarmerTransactions(farmer.id);
             const allFilteredTransactions = seasons.flatMap((season) =>
               filterByRange(season.transactions, filteredFrom, filteredTo)
@@ -440,6 +451,7 @@ export const Dashboard = ({ onSelectFarmer, onNavigateToSettings, onLogout }) =>
   const stats = {
     totalFarmers: farmers.length,
   };
+  const visibleFarmers = showAllFarmers ? filteredFarmers : filteredFarmers.slice(0, 10);
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -586,17 +598,30 @@ export const Dashboard = ({ onSelectFarmer, onNavigateToSettings, onLogout }) =>
               <p className="text-gray-600 text-lg">📭 No farmers found</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              {filteredFarmers.map((farmer) => (
-                <FarmerCard
-                  key={farmer.id}
-                  farmer={farmer}
-                  onSelect={(f) => onSelectFarmer(f)}
-                  onEdit={handleEditFarmer}
-                  onDelete={handleDeleteFarmer}
-                />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                {visibleFarmers.map((farmer) => (
+                  <FarmerCard
+                    key={farmer.id}
+                    farmer={farmer}
+                    onSelect={(f) => onSelectFarmer(f)}
+                    onEdit={handleEditFarmer}
+                    onDelete={handleDeleteFarmer}
+                  />
+                ))}
+              </div>
+              {filteredFarmers.length > 10 && (
+                <div className="mt-4 flex justify-center">
+                  <button
+                    type="button"
+                    onClick={() => setShowAllFarmers((prev) => !prev)}
+                    className="rounded-lg bg-slate-900 px-5 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+                  >
+                    {showAllFarmers ? 'Show Less' : 'View All'}
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </Card>
 
@@ -752,7 +777,7 @@ export const Dashboard = ({ onSelectFarmer, onNavigateToSettings, onLogout }) =>
               onChange={handleExportChange}
               options={
                 [{ value: 'ALL', label: 'ALL FARMERS' }].concat(
-                  farmers.map((farmer) => ({
+                  sortFarmersBySequenceAsc(farmers).map((farmer) => ({
                     value: farmer.id,
                     label: farmer.name || 'Unnamed Farmer',
                   }))

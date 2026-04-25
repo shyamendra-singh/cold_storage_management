@@ -1,15 +1,21 @@
-import React, { useState } from 'react';
-import { Input, Select, Button, TextArea, EmptyState } from './commonComponents';
+import React, { useEffect, useRef, useState } from 'react';
+import { Input, Button, TextArea, EmptyState } from './commonComponents';
 import { formatDate, formatCurrency } from '../utils/calculations';
 
 /**
  * TransactionForm Component
  * Form to add/edit transactions
  */
-export const TransactionForm = ({ onSubmit, loading, editingTransaction = null }) => {
+export const TransactionForm = ({
+  onSubmit,
+  loading,
+  editingTransaction = null,
+  initialType = 'withdrawal',
+}) => {
+  const primaryInputRef = useRef(null);
   const [formData, setFormData] = useState(
     editingTransaction || {
-      type: 'deposit',
+      type: initialType,
       bags: '',
       payment: '',
       amount: '',
@@ -18,6 +24,12 @@ export const TransactionForm = ({ onSubmit, loading, editingTransaction = null }
     }
   );
   const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    if (primaryInputRef.current) {
+      primaryInputRef.current.focus();
+    }
+  }, [editingTransaction, initialType]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -58,7 +70,7 @@ export const TransactionForm = ({ onSubmit, loading, editingTransaction = null }
       onSubmit(formData);
       if (!editingTransaction) {
         setFormData({
-          type: 'deposit',
+          type: initialType,
           bags: '',
           payment: '',
           amount: '',
@@ -69,33 +81,31 @@ export const TransactionForm = ({ onSubmit, loading, editingTransaction = null }
     }
   };
 
-  const transactionTypes = [
-    { value: 'deposit', label: 'Deposit (Add Bags)' },
-    { value: 'withdrawal', label: 'Withdrawal (Remove Bags)' },
-    { value: 'payment', label: 'Payment (Direct)' },
-  ];
-
   return (
     <form onSubmit={handleSubmit}>
-      <Select
-        label="Transaction Type *"
-        options={transactionTypes}
-        value={formData.type}
-        onChange={(e) =>
-          setFormData({
-            ...formData,
-            type: e.target.value,
-            bags: '',
-            payment: '',
-            amount: '',
-          })
-        }
-        error={errors.type}
-        required
-      />
+      {editingTransaction ? (
+        <Input
+          label="Transaction Type"
+          value={
+            formData.type === 'deposit'
+              ? 'Deposit'
+              : formData.type === 'withdrawal'
+              ? 'Withdrawal'
+              : 'Final Payment'
+          }
+          disabled
+        />
+      ) : (
+        <Input
+          label="Transaction Type"
+          value={formData.type === 'withdrawal' ? 'Withdrawal' : 'Final Payment'}
+          disabled
+        />
+      )}
 
       {(formData.type === 'deposit' || formData.type === 'withdrawal') && (
         <Input
+          ref={primaryInputRef}
           label={
             formData.type === 'deposit'
               ? 'Number of Bags to Deposit *'
@@ -108,6 +118,7 @@ export const TransactionForm = ({ onSubmit, loading, editingTransaction = null }
           error={errors.bags}
           required
           min="1"
+          autoFocus={!editingTransaction && formData.type === 'withdrawal'}
         />
       )}
 
@@ -126,6 +137,7 @@ export const TransactionForm = ({ onSubmit, loading, editingTransaction = null }
 
       {formData.type === 'payment' && (
         <Input
+          ref={primaryInputRef}
           label="Payment Amount *"
           type="number"
           placeholder="Enter payment amount"
@@ -135,6 +147,7 @@ export const TransactionForm = ({ onSubmit, loading, editingTransaction = null }
           required
           min="0.01"
           step="0.01"
+          autoFocus={!editingTransaction}
         />
       )}
 
@@ -148,15 +161,15 @@ export const TransactionForm = ({ onSubmit, loading, editingTransaction = null }
       />
 
       <TextArea
-        label="Notes (Optional)"
-        placeholder="Add any notes"
+        label="Remarks (Optional)"
+        placeholder="Add remarks"
         value={formData.note}
         onChange={(e) => setFormData({ ...formData, note: e.target.value })}
         rows="3"
       />
 
       <Button variant="success" size="lg" disabled={loading} className="!w-full">
-        {loading ? 'Saving...' : editingTransaction ? 'Update Transaction' : 'Add Transaction'}
+        {loading ? 'Saving...' : editingTransaction ? 'Update Transaction' : 'Save Transaction'}
       </Button>
     </form>
   );

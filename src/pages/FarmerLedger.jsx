@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Header, Card, Modal, Button, LoadingSpinner } from '../components/commonComponents';
+import { Header, Card, Modal, Button, LoadingSpinner, Input } from '../components/commonComponents';
 import {
   TransactionForm,
   TransactionList,
@@ -10,6 +10,7 @@ import {
   addSeason,
   getTransactions,
   addTransaction,
+  updateSeason,
   updateTransaction,
   deleteTransaction,
   getAllSessions,
@@ -26,7 +27,9 @@ export const FarmerLedger = ({ farmer, onBack, onLogout }) => {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddTransaction, setShowAddTransaction] = useState(false);
+  const [newTransactionType, setNewTransactionType] = useState('withdrawal');
   const [editingTransaction, setEditingTransaction] = useState(null);
+  const [rentPerBagValue, setRentPerBagValue] = useState('');
   const [formLoading, setFormLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -35,7 +38,7 @@ export const FarmerLedger = ({ farmer, onBack, onLogout }) => {
       setLoading(true);
       setError(null);
       const fetchedSeasons = await getSeasons(farmer.id);
-      const filteredSeasons = fetchedSeasons.filter(season => season.sessionId === sessionId);
+      const filteredSeasons = fetchedSeasons.filter((season) => season.sessionId === sessionId);
       setSeasons(filteredSeasons);
       if (filteredSeasons.length > 0) {
         setSelectedSeason(filteredSeasons[0]);
@@ -90,9 +93,12 @@ export const FarmerLedger = ({ farmer, onBack, onLogout }) => {
     }
   }, [selectedSeason, loadTransactions]);
 
+  useEffect(() => {
+    setRentPerBagValue(selectedSeason?.rentPerBag?.toString() || '');
+  }, [selectedSeason]);
+
   const handleSelectGlobalSession = (session) => {
     setSelectedGlobalSessionId(session.id);
-    // loadSeasons will be called via useEffect
   };
 
   const handleTransferToSession = async () => {
@@ -117,9 +123,7 @@ export const FarmerLedger = ({ farmer, onBack, onLogout }) => {
       return;
     }
 
-    const alreadyHasSession = seasons.some(
-      (season) => season.sessionId === targetSessionId
-    );
+    const alreadyHasSession = seasons.some((season) => season.sessionId === targetSessionId);
     if (alreadyHasSession) {
       alert('This farmer already has a season for the chosen session.');
       return;
@@ -181,6 +185,34 @@ export const FarmerLedger = ({ farmer, onBack, onLogout }) => {
     }
   };
 
+  const handleUpdateRentPerBag = async () => {
+    if (!selectedSeason || !selectedSeason.id) {
+      alert('Please select a farmer session with data first');
+      return;
+    }
+
+    const parsedRent = parseFloat(rentPerBagValue);
+    if (Number.isNaN(parsedRent) || parsedRent < 0) {
+      alert('Please enter a valid rent per bag amount');
+      return;
+    }
+
+    try {
+      setFormLoading(true);
+      await updateSeason(farmer.id, selectedSeason.id, { rentPerBag: parsedRent });
+      setSelectedSeason((prev) => (prev ? { ...prev, rentPerBag: parsedRent } : prev));
+      setSeasons((prev) =>
+        prev.map((season) =>
+          season.id === selectedSeason.id ? { ...season, rentPerBag: parsedRent } : season
+        )
+      );
+    } catch (err) {
+      alert('Error updating rent per bag: ' + err.message);
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
   const handleExport = () => {
     if (!selectedSeason || !selectedSeason.id) {
       alert('Please select a farmer session with data first');
@@ -216,7 +248,7 @@ export const FarmerLedger = ({ farmer, onBack, onLogout }) => {
   return (
     <div className="min-h-screen bg-gray-100">
       <Header
-        title={`👨‍🌾 ${farmer.name}'s Ledger`}
+        title={`${farmer.name}'s Ledger`}
         subtitle={selectedSeason ? `Season: ${selectedSeason.seasonName}` : 'Select a season'}
         onBackClick={onBack}
       />
@@ -228,16 +260,15 @@ export const FarmerLedger = ({ farmer, onBack, onLogout }) => {
           </div>
         )}
 
-        {/* Seasons Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           <div className="lg:col-span-1">
             <Card title="Seasons">
               {loading ? (
                 <LoadingSpinner />
               ) : (
-                <div>
+                <div className="space-y-6">
                   {globalSessions.length === 0 ? (
-                    <p className="text-gray-600 text-center py-4">📭 No sessions available</p>
+                    <p className="text-gray-600 text-center py-4">No sessions available</p>
                   ) : (
                     <div className="space-y-3">
                       {globalSessions.map((session) => (
@@ -267,16 +298,75 @@ export const FarmerLedger = ({ farmer, onBack, onLogout }) => {
                       ))}
                     </div>
                   )}
+
+                  {selectedSeason && (
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-3">Edit Rent per Bag</h3>
+                      <div className="space-y-3">
+                        <Input
+                          label="Rent per Bag"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={rentPerBagValue}
+                          onChange={(e) => setRentPerBagValue(e.target.value)}
+                          placeholder="Enter rent per bag"
+                        />
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={handleUpdateRentPerBag}
+                          className="w-full"
+                          disabled={formLoading}
+                        >
+                          {formLoading ? 'Saving...' : 'Save Rate'}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedSeason && (
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-3">Transfer Farmer Session</h3>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Select Target Session
+                          </label>
+                          <select
+                            value={targetSessionId}
+                            onChange={(e) => setTargetSessionId(e.target.value)}
+                            className="w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:border-blue-600 transition border-gray-300"
+                          >
+                            <option value="">Choose a session</option>
+                            {globalSessions
+                              .filter((session) => session.id !== selectedSeason?.sessionId)
+                              .map((session) => (
+                                <option key={session.id} value={session.id}>
+                                  {session.sessionName} ({session.rentPerBag}/bag)
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+                        <Button
+                          variant="success"
+                          size="sm"
+                          onClick={handleTransferToSession}
+                          className="w-full"
+                        >
+                          Transfer Session
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </Card>
           </div>
 
-          {/* Main Content */}
           <div className="lg:col-span-2">
             {selectedSeason ? (
               <>
-                {/* Summary */}
                 <div className="mb-6">
                   <LedgerSummary
                     stats={farmerStats}
@@ -284,18 +374,30 @@ export const FarmerLedger = ({ farmer, onBack, onLogout }) => {
                   />
                 </div>
 
-                {/* Action Buttons */}
                 <div className="flex gap-2 mb-6 flex-wrap">
                   <Button
                     variant="primary"
                     size="sm"
                     onClick={() => {
                       setEditingTransaction(null);
+                      setNewTransactionType('withdrawal');
                       setShowAddTransaction(true);
                     }}
                     className="flex-1 md:flex-none"
                   >
-                    ➕ Add Transaction
+                    Withdrawal
+                  </Button>
+                  <Button
+                    variant="success"
+                    size="sm"
+                    onClick={() => {
+                      setEditingTransaction(null);
+                      setNewTransactionType('payment');
+                      setShowAddTransaction(true);
+                    }}
+                    className="flex-1 md:flex-none"
+                  >
+                    Final Payment
                   </Button>
                   <Button
                     variant="secondary"
@@ -303,7 +405,7 @@ export const FarmerLedger = ({ farmer, onBack, onLogout }) => {
                     onClick={handleExport}
                     className="flex-1 md:flex-none"
                   >
-                    📊 Export Excel
+                    Export Excel
                   </Button>
                   <Button
                     variant="outline"
@@ -311,41 +413,8 @@ export const FarmerLedger = ({ farmer, onBack, onLogout }) => {
                     onClick={handlePrint}
                     className="flex-1 md:flex-none"
                   >
-                    🖨️ Print
+                    Print
                   </Button>
-                </div>
-
-                <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3">Transfer Farmer Session</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Select Target Session
-                      </label>
-                      <select
-                        value={targetSessionId}
-                        onChange={(e) => setTargetSessionId(e.target.value)}
-                        className="w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:border-blue-600 transition border-gray-300"
-                      >
-                        <option value="">Choose a session</option>
-                        {globalSessions
-                          .filter((session) => session.id !== selectedSeason?.sessionId)
-                          .map((session) => (
-                            <option key={session.id} value={session.id}>
-                              {session.sessionName} ({session.rentPerBag}/bag)
-                            </option>
-                          ))}
-                      </select>
-                    </div>
-                    <Button
-                      variant="success"
-                      size="sm"
-                      onClick={handleTransferToSession}
-                      className="flex-1 md:flex-none"
-                    >
-                      🔁 Transfer Session
-                    </Button>
-                  </div>
                 </div>
                 {onLogout && (
                   <Button
@@ -354,11 +423,10 @@ export const FarmerLedger = ({ farmer, onBack, onLogout }) => {
                     onClick={onLogout}
                     className="flex-1 md:flex-none"
                   >
-                    🔒 Logout
+                    Logout
                   </Button>
                 )}
 
-                {/* Transactions */}
                 <Card title="Transactions">
                   {loading ? (
                     <LoadingSpinner />
@@ -377,18 +445,22 @@ export const FarmerLedger = ({ farmer, onBack, onLogout }) => {
             ) : (
               <Card>
                 <div className="text-center py-8">
-                  <p className="text-gray-600 text-xl">👆 Select a season to view transactions</p>
+                  <p className="text-gray-600 text-xl">Select a season to view transactions</p>
                 </div>
               </Card>
             )}
           </div>
         </div>
 
-
-        {/* Add/Edit Transaction Modal */}
         <Modal
           isOpen={showAddTransaction}
-          title={editingTransaction ? 'Edit Transaction' : 'Add Transaction'}
+          title={
+            editingTransaction
+              ? 'Edit Transaction'
+              : newTransactionType === 'withdrawal'
+              ? 'Add Withdrawal'
+              : 'Add Final Payment'
+          }
           onClose={() => {
             setShowAddTransaction(false);
             setEditingTransaction(null);
@@ -398,6 +470,7 @@ export const FarmerLedger = ({ farmer, onBack, onLogout }) => {
             onSubmit={handleAddTransaction}
             loading={formLoading}
             editingTransaction={editingTransaction}
+            initialType={newTransactionType}
           />
         </Modal>
       </main>
