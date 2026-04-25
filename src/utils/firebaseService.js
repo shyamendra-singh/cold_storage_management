@@ -386,21 +386,19 @@ export const deleteTransaction = async (
 export const getAllFarmerTransactions = async (farmerId) => {
   try {
     const seasons = await getSeasons(farmerId);
-    const allTransactions = [];
-
-    for (const season of seasons) {
-      const transactions = await getTransactions(farmerId, season.id);
-      allTransactions.push({
-        id: season.id,
-        season: season.id,
-        sessionId: season.sessionId,
-        seasonName: season.seasonName,
-        rentPerBag: season.rentPerBag,
-        transactions,
-      });
-    }
-
-    return allTransactions;
+    return Promise.all(
+      seasons.map(async (season) => {
+        const transactions = await getTransactions(farmerId, season.id);
+        return {
+          id: season.id,
+          season: season.id,
+          sessionId: season.sessionId,
+          seasonName: season.seasonName,
+          rentPerBag: season.rentPerBag,
+          transactions,
+        };
+      })
+    );
   } catch (error) {
     console.error('Error getting all farmer transactions:', error);
     throw error;

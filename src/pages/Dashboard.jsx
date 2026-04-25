@@ -77,15 +77,17 @@ export const Dashboard = ({ onSelectFarmer, onNavigateToSettings, onLogout }) =>
     try {
       const fetchedSessions = await getAllSessions();
       setSessions(fetchedSessions);
-      if (!selectedSession) {
-        if (fetchedSessions.length > 0) {
-          setSelectedSession(fetchedSessions[0]);
+      setSelectedSession((currentSession) => {
+        if (currentSession) {
+          return currentSession;
         }
-      }
+
+        return fetchedSessions.length > 0 ? fetchedSessions[0] : null;
+      });
     } catch (err) {
       console.error('Failed to load sessions:', err);
     }
-  }, [selectedSession]);
+  }, []);
 
   useEffect(() => {
     loadSessions();
@@ -98,7 +100,7 @@ export const Dashboard = ({ onSelectFarmer, onNavigateToSettings, onLogout }) =>
       setError(null);
       const fetchedFarmers = await getAllFarmers();
 
-      const farmersWithStats = await Promise.all(
+      const farmerResults = await Promise.allSettled(
         fetchedFarmers.map(async (farmer) => {
           const seasons = await getAllFarmerTransactions(farmer.id);
           const remainingBags = seasons.reduce((sum, seasonData) => {
@@ -109,6 +111,18 @@ export const Dashboard = ({ onSelectFarmer, onNavigateToSettings, onLogout }) =>
           return { ...normalizeFarmerForForm(farmer), seasons, remainingBags };
         })
       );
+
+      const farmersWithStats = farmerResults
+        .filter((result) => result.status === 'fulfilled')
+        .map((result) => result.value);
+
+      const failedFarmers = farmerResults.filter((result) => result.status === 'rejected');
+      if (failedFarmers.length > 0) {
+        console.error('Some farmers could not be loaded:', failedFarmers);
+        setError(
+          `Loaded ${farmersWithStats.length} farmers. ${failedFarmers.length} record${failedFarmers.length === 1 ? '' : 's'} could not be loaded.`
+        );
+      }
 
       const sortedFarmers = sortFarmersBySequenceDesc(farmersWithStats);
       setFarmers(sortedFarmers);
@@ -506,7 +520,7 @@ export const Dashboard = ({ onSelectFarmer, onNavigateToSettings, onLogout }) =>
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleDeleteSession(session.id)}
+                      onClick={() => handleDeleteSession(session)}
                       className="p-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition"
                       aria-label="Delete Session"
                     >
